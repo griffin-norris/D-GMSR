@@ -52,42 +52,57 @@ def gmsr_sympy(eps: float, p: int, weights: np.ndarray, N: int) -> T.Tuple[T.Any
 
 
 def gmsr_and(
-    eps: float, p: int, weights: np.ndarray, *args: T.Tuple[T.Any]
+    eps: float,
+    p: int,
+    weights: np.ndarray,
+    *args: T.Tuple[T.Any],
 ) -> T.Tuple[T.Any]:
     """
-    Input: The values of the functions and their gradients to be connected with And -> ( f, gf, g, gg, h, gh, ... )
-    Output: gmsr_and function's value its gradient -> ( And(f,g,h, ...), And(gf, gg, gh) )
+    Computes the generalized mean-based smooth robustness (GMSR) measure for a logical AND operation
+    and its gradient based on input function values and their gradients.
+
+    Parameters:
+    eps (float): A small positive constant used for numerical stability.
+    p (int): An integer parameter that influences the calculation of the GMSR.
+    weights (np.ndarray): An array of weights for the input function values.
+    args (T.Tuple[T.Any]): A tuple containing the values of the functions and their gradients
+                           to be combined using the AND operation.
+
+    Returns:
+    T.Tuple[T.Any]: A tuple containing the GMSR value of the AND operation and its gradient.
     """
 
+    # Number of functions
     K = len(args[0])
     fcn_vals = args[0]
 
+    # Split indices into positive and non-positive values
     pos_idx = list(idx for idx, ele in enumerate(fcn_vals) if ele > 0.0)
     neg_idx = list(idx for idx, ele in enumerate(fcn_vals) if ele <= 0.0)
 
+    # Extract values and weights for positive and non-positive indices
     pos_vals = fcn_vals[pos_idx]
     neg_vals = fcn_vals[neg_idx]
-
     pos_w = weights[pos_idx]
     neg_w = weights[neg_idx]
 
+    # Sum of all weights
     sum_w = np.array(weights).sum()
 
     if neg_idx:
-        # If there exits a negative element
+        # If there exists a negative element
+        # Calculate the GMSR value (h_and) and its gradient (c_i_w_i)
 
-        # Fcn Val
+        # Function value calculation
         sums = 0.0
         for idx, neg_val in enumerate(neg_vals):
-            sums = sums + neg_w[idx] * (neg_val ** (2 * p))
+            sums += neg_w[idx] * (neg_val ** (2 * p))
+        Mp = (eps**p + (sums / sum_w)) ** (1 / p)
+        h_and = eps**0.5 - Mp**0.5
 
-        Mp = (eps ** (p) + (sums / sum_w)) ** (1 / p)
-        h_and = eps ** (1 / 2) - Mp ** (1 / 2)
-
-        # Grad
-        cp = 1 / 2 * Mp ** (-1 / 2)
+        # Gradient calculation
+        cp = 0.5 * Mp**-0.5
         cpm = 2 * p / (p * sum_w * Mp ** (p - 1))
-
         c_i_w_i = np.zeros(K)
         c_i_w_i[neg_idx] = [
             cp * cpm * (neg_w[idx] * (np.abs(neg_val)) ** (2 * p - 1))
@@ -95,20 +110,19 @@ def gmsr_and(
         ]
 
     else:
-        # IF all are positive
+        # If all values are positive
+        # Calculate the GMSR value (h_and) and its gradient (c_i_w_i)
 
-        # Fcn Val
+        # Function value calculation
         mult = 1.0
         for idx, pos_val in enumerate(pos_vals):
-            mult = mult * ((pos_val) ** (2 * pos_w[idx]))
+            mult *= pos_val ** (2 * pos_w[idx])
+        M0 = (eps**sum_w + mult) ** (1 / sum_w)
+        h_and = M0**0.5 - eps**0.5
 
-        M0 = (eps ** (sum_w) + mult) ** (1 / sum_w)
-        h_and = M0 ** (1 / 2) - eps ** (1 / 2)
-
-        # Grad
-        c0 = 1 / 2 * M0 ** (-1 / 2)
+        # Gradient calculation
+        c0 = 0.5 * M0**-0.5
         c0m = (2 * mult) / (sum_w * M0 ** (sum_w - 1))
-
         c_i_w_i = np.zeros(K)
         c_i_w_i[pos_idx] = [
             c0 * c0m * (pos_w[idx] / pos_val) for idx, pos_val in enumerate(pos_vals)
@@ -117,14 +131,34 @@ def gmsr_and(
     return h_and, c_i_w_i
 
 
-def gmsr_or(eps, p, weights, *args):
+def gmsr_or(
+    eps: float,
+    p: int,
+    weights: np.ndarray,
+    *args: T.Tuple[T.Any],
+) -> T.Tuple[T.Any]:
     """
-    Input: The values of the functions and their gradients to be connected with Or
-    Output: gmsr_or function's value its gradient
+    Computes the generalized mean-based smooth robustness (GMSR) measure for a logical OR operation
+    and its gradient based on input function values and their gradients.
+
+    Parameters:
+    eps (float): A small positive constant used for numerical stability.
+    p (int): An integer parameter that influences the calculation of the GMSR.
+    weights (np.ndarray): An array of weights for the input function values.
+    args (T.Tuple[T.Any]): A tuple containing the values of the functions and their gradients
+                           to be combined using the OR operation.
+
+    Returns:
+    T.Tuple[T.Any]: A tuple containing the GMSR value of the OR operation and its gradient.
     """
 
+    # Negate the function values
     args = -args[0]
+
+    # Use the gmsr_and function to compute the GMSR value and gradient for the negated values
     h_mor, d_i_w_i = gmsr_and(eps, p, weights, args)
+
+    # Return the negated GMSR value and the original gradient
     return -h_mor, d_i_w_i
 
 
