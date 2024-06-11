@@ -2,8 +2,7 @@ import numpy as np
 import cvxpy as cp
 import typing as T
 
-from src.stl.until import UNTIL
-from src.stl.gmsr import gmsr_and
+import src.stl as stl
 
 
 def f_wp(xk: np.ndarray, dx: np.ndarray, p_w: np.ndarray, npy: bool) -> T.Tuple[T.Any]:
@@ -63,11 +62,11 @@ def f_until(
         wait_wp = f_0_wp[k : k + params["t_w"]]
         wait_spd = f_0_spd[k : k + params["t_w"]]
 
-        f_0_wp_c_k, grad_wp_c_k = gmsr_and(
+        f_0_wp_c_k, grad_wp_c_k = stl.gmsr.gmsr_and(
             params["stl_eps"], params["stl_p"], params["stl_w_c"], wait_wp
         )
 
-        f_0_spd_c_k, grad_spd_c_k = gmsr_and(
+        f_0_spd_c_k, grad_spd_c_k = stl.gmsr.gmsr_and(
             params["stl_eps"], params["stl_p"], params["stl_w_c"], wait_spd
         )
 
@@ -99,7 +98,7 @@ def f_until(
 
     # ---------------------------------------------------------------
 
-    f_0_until, phi_1_grad, phi_2_grad = UNTIL(
+    f_0_until, phi_1_grad, phi_2_grad = stl.until.UNTIL(
         params["stl_eps"],
         params["stl_p"],
         params["stl_w_phi_1"],
