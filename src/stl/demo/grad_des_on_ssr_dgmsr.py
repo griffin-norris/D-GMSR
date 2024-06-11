@@ -1,4 +1,13 @@
-def grad_des_on_ssr_dgmsr():
+import numpy as np
+import matplotlib.pyplot as plt
+
+from matplotlib.pyplot import cm
+
+from ..ssr import ssr_sympy
+from ..gmsr import gmsr_and, gmsr_or 
+
+
+def grad_des_on_ssr_dgmsr(save_fig, fig_format, fig_png_dpi):
 
     # ---------------------------------------------------------------
     # D-SSR D-GMSR Parameters
